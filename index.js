@@ -40,14 +40,15 @@ client.connect(err => {
     const IslavoPayment = client.db("ISLAVO").collection("IslavoPayment");
 
     app.post("/userpayment", (req, res) => {
+        console.log(req.body);
         const transactionId = uuidv4();
         const data = new FormData();
         data.append('amount', '64.2');
         data.append('transaction_id', `${transactionId}`);
         data.append('success_url', 'https://mydomain.com/success');
         data.append('fail_url', 'https://mydomain.com/fail');
-        data.append('customer_name', 'Test');
-        data.append('customer_mobile', '01700000000');
+        data.append('customer_name', req.body.Email);
+        data.append('customer_mobile', req.body.Phone);
         data.append('purpose', 'Online Payment');
         data.append('payment_details', '');
 
