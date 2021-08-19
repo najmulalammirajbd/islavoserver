@@ -31,26 +31,40 @@ const getUserPaymentData = asyncHandler(async (req, res) => {
     axios(config)
       .then(async function (response) {
         console.log(JSON.stringify(response.data));
-        const paymentDetails = new PaymentDetails({
-          user: user._id,
-          amount: response.data.data.amount,
-          success_url: response.data.data.success_url,
-          fail_url: response.data.data.fail_url,
-          customer_mobile: response.data.data.customer_mobile,
-          customer_name: response.data.data.customer_name,
-          emi_month: response.data.data.emi_month,
-          purpose: response.data.data.purpose,
-          client_id: response.data.data.client_id,
-          client_name: response.data.data.client_name,
-          transaction_id: response.data.data.transaction_id,
-          payment_status: response.data.data.payment_status,
-          payment_details: response.data.data.payment_details,
-        });
-        console.log(paymentDetails);
+        const paymentData = await PaymentDetails.findOne({ email: email });
+        if(response.data.data.payment_details === 'completed'){
+          if(paymentData){
+            paymentData.payment_status = 'completed';
+            await paymentData.save();
+          }
+          else {
+            const paymentDetails = new PaymentDetails({
+              user: user._id,
+              amount: response.data.data.amount,
+              success_url: response.data.data.success_url,
+              fail_url: response.data.data.fail_url,
+              customer_mobile: response.data.data.customer_mobile,
+              customer_name: response.data.data.customer_name,
+              emi_month: response.data.data.emi_month,
+              purpose: response.data.data.purpose,
+              client_id: response.data.data.client_id,
+              client_name: response.data.data.client_name,
+              transaction_id: response.data.data.transaction_id,
+              payment_status: response.data.data.payment_status,
+              payment_details: response.data.data.payment_details,
+            });
+            console.log(paymentDetails);
 
-        const paymentDetailsReq = await paymentDetails.save();
-        console.log(paymentDetailsReq);
-        res.status(200).send(paymentDetailsReq);
+            const paymentDetailsReq = await paymentDetails.save();
+            user.paymentStatus = true;
+            await user.save();
+            console.log(paymentDetailsReq);
+            res.status(200).send({ paymentStatus: 'completed' });
+          }
+        }
+        else {
+          res.status(200).send({ paymentStatus: 'pending' });
+        }
       })
       .catch(function (error) {
         console.log(error);
