@@ -11,65 +11,104 @@ import FormData from 'form-data';
 const getUserPaymentData = asyncHandler(async (req, res) => {
   const { email } = req.body;
   const user = await User.findOne({ email: email });
+  const paymentData = await PaymentDetails.findOne({ email: email });
   if (user && user.transactionId !== null) {
-    console.log(user.transactionId);
-    const data = new FormData();
-    data.append('transaction_id', user.transactionId);
+    if (user.paymentStatus) {
+      res.status(200).send({ paymentStatus: 'completed' });
+    } else {
+      console.log(user.transactionId);
+      const data = new FormData();
+      data.append('transaction_id', user.transactionId);
 
-    var config = {
-      method: 'get',
-      url: `https://api.sheba.xyz/v1/ecom-payment/details?transaction_id=${user.transactionId}`,
-      headers: {
-        Accept: 'application/json',
-        'client-id': `${process.env.CLIENT_ID}`,
-        'client-secret': `${process.env.CLIENT_SECRET}`,
-        ...data.getHeaders(),
-      },
-      data: data,
-    };
+      var config = {
+        method: 'get',
+        url: `https://api.sheba.xyz/v1/ecom-payment/details?transaction_id=${user.transactionId}`,
+        headers: {
+          Accept: 'application/json',
+          'client-id': `${process.env.CLIENT_ID}`,
+          'client-secret': `${process.env.CLIENT_SECRET}`,
+          ...data.getHeaders(),
+        },
+        data: data,
+      };
 
-    axios(config)
-      .then(async function (response) {
-        console.log(JSON.stringify(response.data));
-        const paymentData = await PaymentDetails.findOne({ email: email });
-        if(response.data.data.payment_details === 'completed'){
-          if(paymentData){
-            paymentData.payment_status = 'completed';
-            await paymentData.save();
+      axios(config)
+        .then(async function (response) {
+          console.log(JSON.stringify(response.data));
+          //console.log(JSON.stringify(response.data.data.payment_status));
+          //const paymentData = await PaymentDetails.findOne({ email: email });
+          if (response.data.data.payment_status == 'completed') {
+            if (paymentData) {
+              paymentData.payment_status = 'completed';
+              await paymentData.save();
+            } else {
+              console.log(response.data.data.payment_details);
+              const paymentDetails = new PaymentDetails({
+                user: user._id,
+                amount: response.data.data.amount,
+                success_url: response.data.data.success_url,
+                fail_url: response.data.data.fail_url,
+                customer_mobile: response.data.data.customer_mobile,
+                customer_name: response.data.data.customer_name,
+                emi_month: response.data.data.emi_month,
+                purpose: response.data.data.purpose,
+                client_id: response.data.data.client_id,
+                client_name: response.data.data.client_name,
+                transaction_id: response.data.data.transaction_id,
+                payment_status: response.data.data.payment_status,
+                payment_details: {
+                  method: response.data.data.payment_details.method,
+                  transaction_details: {
+                    paymentID:
+                      response.data.data.payment_details.transaction_details
+                        .paymentID,
+                    createTime:
+                      response.data.data.payment_details.transaction_details
+                        .createTime,
+                    updateTime:
+                      response.data.data.payment_details.transaction_details
+                        .updateTime,
+                    trxID:
+                      response.data.data.payment_details.transaction_details
+                        .trxID,
+                    transactionStatus:
+                      response.data.data.payment_details.transaction_details
+                        .transactionStatus,
+                    amount:
+                      response.data.data.payment_details.transaction_details
+                        .amount,
+                    currency:
+                      response.data.data.payment_details.transaction_details
+                        .paymentID,
+                    intent:
+                      response.data.data.payment_details.transaction_details
+                        .intent,
+                    merchantInvoiceNumber:
+                      response.data.data.payment_details.transaction_details
+                        .merchantInvoiceNumber,
+                  },
+                  payment_at: response.data.data.payment_details.payment_at,
+                  invoice_link: response.data.data.payment_details.invoice_link,
+                },
+              });
+              console.log(paymentDetails);
+
+              const paymentDetailsReq = await paymentDetails.save();
+              user.paymentStatus = true;
+              await user.save();
+              console.log(paymentDetailsReq);
+              res.status(200).send({ paymentStatus: 'completed' });
+            }
+          } else {
+            console.log('pending--');
+            res.status(200).send({ paymentStatus: 'pending' });
           }
-          else {
-            const paymentDetails = new PaymentDetails({
-              user: user._id,
-              amount: response.data.data.amount,
-              success_url: response.data.data.success_url,
-              fail_url: response.data.data.fail_url,
-              customer_mobile: response.data.data.customer_mobile,
-              customer_name: response.data.data.customer_name,
-              emi_month: response.data.data.emi_month,
-              purpose: response.data.data.purpose,
-              client_id: response.data.data.client_id,
-              client_name: response.data.data.client_name,
-              transaction_id: response.data.data.transaction_id,
-              payment_status: response.data.data.payment_status,
-              payment_details: response.data.data.payment_details,
-            });
-            console.log(paymentDetails);
-
-            const paymentDetailsReq = await paymentDetails.save();
-            user.paymentStatus = true;
-            await user.save();
-            console.log(paymentDetailsReq);
-            res.status(200).send({ paymentStatus: 'completed' });
-          }
-        }
-        else {
-          res.status(200).send({ paymentStatus: 'pending' });
-        }
-      })
-      .catch(function (error) {
-        console.log(error);
-        res.send(error);
-      });
+        })
+        .catch(function (error) {
+          console.log(error);
+          res.send(error);
+        });
+    }
   } else {
     res.status(401);
     throw new Error('Invalid email');
@@ -91,7 +130,7 @@ const saveUserPaymentData = asyncHandler(async (req, res) => {
     const transactionId = uuidv4();
 
     const data = new FormData();
-    data.append('amount', '64.2');
+    data.append('amount', '10');
     data.append('transaction_id', `${transactionId}`);
     data.append('success_url', 'https://mydomain.com/success');
     data.append('fail_url', 'https://mydomain.com/fail');

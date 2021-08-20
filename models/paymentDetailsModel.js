@@ -52,8 +52,23 @@ const paymentDetailsSchema = mongoose.Schema({
     required: true,
   },
   payment_details: {
-    type: String,
-  },
+    method: {
+      type: String,
+    },
+    transaction_details: {
+      paymentID: { type: String },
+      createTime: { type: String },
+      updateTime: { type: String },
+      trxID: { type: String },
+      transactionStatus: { type: String },
+      amount: { type: String },
+      currency: { type: String },
+      intent: { type: String },
+      merchantInvoiceNumber: { type: String },
+    },
+    payment_at: { type: String },
+    invoice_link: { type: String },
+  }
 });
 
 const PaymentDetails = mongoose.model('PaymentDetails', paymentDetailsSchema);
