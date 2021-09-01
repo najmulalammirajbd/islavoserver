@@ -172,8 +172,20 @@ const saveUserPaymentData = asyncHandler(async (req, res) => {
   }
 });
 
+const getPaymentStatus = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  const user = await User.findOne({ email: email });
+  if (user && user.paymentStatus) {
+      res.status(200).send({ paymentStatus: true });
+    } else {
+      res.status(200).send({ paymentStatus: false });
+    }
+
+});
+
 export {
-getUserPaymentData,
+  getUserPaymentData,
   saveUserPaymentData,
+  getPaymentStatus
 
 };
