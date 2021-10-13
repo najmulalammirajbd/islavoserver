@@ -130,13 +130,13 @@ const saveUserPaymentData = asyncHandler(async (req, res) => {
     const transactionId = uuidv4();
 
     const data = new FormData();
-    data.append('amount', '10');
+    data.append('amount', '64.2');
     data.append('transaction_id', `${transactionId}`);
-    data.append('success_url', 'https://mydomain.com/success');
-    data.append('fail_url', 'https://mydomain.com/fail');
+    data.append('success_url', 'https://islavo.web.app/clicknow');
+    data.append('fail_url', 'https://islavo.web.app/redy');
     data.append('customer_name', name);
     data.append('customer_mobile', phone);
-    data.append('purpose', 'Online Payment');
+    data.append('purpose', 'ISLAVO PODCAST');
     data.append('payment_details', '');
     console.log(process.env.CLIENT_ID, process.env.CLIENT_SECRET);
     const config = {
